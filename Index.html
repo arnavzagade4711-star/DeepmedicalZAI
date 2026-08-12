@@ -1,1 +1,1316 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DeepLearn — AI Topic Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#0A0E13; --bg-elev:#0F151C; --surface:#141B24; --surface-hi:#1B2430;
+  --border:#232E3A; --border-soft:#1A2129;
+  --text:#E8EDF1; --text-dim:#8B98A5; --text-faint:#5C6A78;
+  --teal:#3ECFC4; --teal-dim:#1F5E58; --teal-soft:rgba(62,207,196,.13);
+  --amber:#F0A94E; --amber-dim:#7A5427; --amber-soft:rgba(240,169,78,.13);
+  --coral:#E8697A; --coral-dim:#7A3844; --coral-soft:rgba(232,105,122,.13);
+  --green:#4ADE80; --green-dim:#274D2C; --green-soft:rgba(74,222,128,.13);
+  --radius:10px;
+  --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans:'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; min-height:100vh;
+}
+.app{max-width:800px; margin:0 auto; padding:0 0 60px;}
+
+/* ---------- Hero ---------- */
+.hero{padding:28px 20px 20px; border-bottom:1px solid var(--border-soft); position:sticky; top:0; background:rgba(10,14,19,.95); backdrop-filter:blur(8px); z-index:20;}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--teal);
+  text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.eyebrow::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--teal);
+  box-shadow:0 0 8px var(--teal); flex-shrink:0; animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.4;}}
+h1.title{
+  font-family:var(--mono); font-weight:700; font-size:clamp(24px,7vw,36px);
+  letter-spacing:.02em; margin:0 0 8px; line-height:1;
+  background:linear-gradient(120deg,var(--text) 40%,var(--teal) 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-sub{font-size:13px; color:var(--text-dim); margin:0;}
+
+main{padding:20px;}
+
+/* ---------- Input ---------- */
+.search-box{
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius);
+  padding:16px; margin-bottom:20px; display:flex; gap:10px; position:relative;
+}
+.search-box input{
+  flex:1; background:var(--bg-elev); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:var(--sans); font-size:14px; padding:11px 12px;
+  transition:border-color .2s;
+}
+.search-box input:focus{outline:none; border-color:var(--teal);}
+.search-box button{
+  padding:10px 20px; background:var(--teal-soft); border:1px solid var(--teal-dim);
+  border-radius:6px; color:var(--teal); font-family:var(--mono); font-weight:600; font-size:12px;
+  cursor:pointer; transition:.15s; text-transform:uppercase; letter-spacing:.04em;
+  white-space:nowrap;
+}
+.search-box button:hover{background:var(--teal); color:var(--bg);}
+.search-box button:disabled{opacity:.5; cursor:not-allowed;}
+
+.loading{
+  display:flex; align-items:center; gap:8px; color:var(--text-dim); font-family:var(--mono); font-size:13px;
+}
+.spinner{
+  width:12px; height:12px; border:2px solid var(--border); border-top-color:var(--teal);
+  border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ---------- Steps ---------- */
+.steps-container{display:grid; gap:12px; margin-top:20px;}
+.step{
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius);
+  padding:0; overflow:hidden; transition:all .2s;
+}
+.step.loading{border-color:var(--amber-dim); background:var(--amber-soft);}
+.step.active{border-color:var(--teal-dim);}
+.step.complete{border-color:var(--green-dim);}
+.step-header{
+  display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;
+  background:var(--surface); user-select:none; transition:.15s;
+}
+.step-header:hover{background:var(--surface-hi);}
+.step-num{
+  width:32px; height:32px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-weight:600; font-size:13px; color:var(--text); flex-shrink:0;
+}
+.step.loading .step-num{background:var(--amber-soft); color:var(--amber); border:1px solid var(--amber-dim);}
+.step.active .step-num{background:var(--teal-soft); color:var(--teal); border:1px solid var(--teal-dim);}
+.step.complete .step-num{background:var(--green-soft); color:var(--green); border:1px solid var(--green-dim);}
+.step-title{flex:1;}
+.step-title h3{margin:0; font-size:14px; font-weight:600; color:var(--text);}
+.step-title p{margin:2px 0 0; font-size:12px; color:var(--text-faint);}
+.step-toggle{color:var(--text-dim); font-size:16px; flex-shrink:0; transition:.2s transform;}
+.step.expanded .step-toggle{transform:rotate(90deg);}
+
+.step-content{
+  display:none; padding:0 16px 16px 56px; border-top:1px solid var(--border-soft); max-height:1000px; overflow-y:auto;
+}
+.step.expanded .step-content{display:block; animation:fadein .3s ease;}
+@keyframes fadein{from{opacity:0;} to{opacity:1;}}
+
+.step-content h4{font-size:12.5px; margin:14px 0 8px; font-weight:600; color:var(--text); text-transform:uppercase; letter-spacing:.04em;}
+.step-content p{font-size:13px; line-height:1.6; color:var(--text-dim); margin:0 0 10px;}
+.step-content ul{margin:8px 0; padding-left:20px;}
+.step-content li{font-size:13px; line-height:1.7; color:var(--text-dim); margin-bottom:8px;}
+.step-content b{color:var(--text); font-weight:600;}
+.step-content strong{color:var(--teal); font-weight:600;}
+
+.code-block{
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:6px; padding:10px 12px;
+  font-family:var(--mono); font-size:11px; color:var(--teal-dim); line-height:1.6; margin:8px 0;
+  overflow-x:auto; white-space:pre-wrap; word-break:break-word;
+}
+
+.note-box{background:var(--surface-hi); border-left:3px solid var(--teal); border-radius:6px; padding:10px 12px; margin:8px 0; font-size:12.5px; line-height:1.5; color:var(--text-dim);}
+.note-box b{color:var(--text);}
+
+.error-log{background:var(--coral-soft); border:1px solid var(--coral-dim); border-radius:6px; padding:10px 12px; margin:8px 0; font-size:12px; line-height:1.5;}
+.error-log strong{color:var(--coral); font-weight:600;}
+
+.checklist{margin:8px 0;}
+.check-item{display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; cursor:pointer;}
+.check-item input{appearance:none; -webkit-appearance:none; width:16px; height:16px; min-width:16px; margin-top:2px;
+  border:1.5px solid var(--border); border-radius:4px; background:var(--bg-elev); cursor:pointer;}
+.check-item input:checked{background:var(--teal-soft); border-color:var(--teal);}
+.check-item span{font-size:13px; line-height:1.5; color:var(--text-dim);}
+
+/* Table */
+.table-wrap{overflow-x:auto; margin:8px 0;}
+.table-wrap table{width:100%; border-collapse:collapse; font-size:12px;}
+.table-wrap td, .table-wrap th{padding:8px; border-bottom:1px solid var(--border-soft); text-align:left;}
+.table-wrap th{background:var(--surface-hi); color:var(--text); font-weight:600;}
+.table-wrap tr:last-child td{border-bottom:none;}
+
+.action-buttons{display:flex; gap:8px; margin:12px 0; flex-wrap:wrap;}
+.action-btn{
+  flex:1; min-width:120px; padding:9px 12px; border:1px solid var(--border); border-radius:6px;
+  background:var(--surface-hi); color:var(--text-dim); font-family:var(--mono); font-size:11px; font-weight:600;
+  cursor:pointer; transition:.15s; text-transform:uppercase; letter-spacing:.04em;
+}
+.action-btn:hover{border-color:var(--teal-dim); color:var(--teal);}
+.action-btn.primary{background:var(--teal-soft); border-color:var(--teal); color:var(--teal);}
+.action-btn.primary:hover{background:var(--teal); color:var(--bg);}
+
+/* Complete banner */
+.complete-banner{background:var(--green-soft); border:1px solid var(--green-dim); border-radius:var(--radius); padding:16px; margin:20px 0; text-align:center;}
+.complete-banner h2{margin:0 0 6px; font-size:16px; color:var(--green);}
+.complete-banner p{margin:0; font-size:13px; color:var(--text-dim); line-height:1.5;}
+
+.error-message{background:var(--coral-soft); border:1px solid var(--coral-dim); border-radius:var(--radius); padding:12px 14px; margin:14px 0; color:var(--coral); font-size:13px; line-height:1.5;}
+
+footer.foot{text-align:center; padding:20px; font-size:11px; color:var(--text-faint); font-family:var(--mono); border-top:1px solid var(--border-soft);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <div class="eyebrow">AI-Powered Learning Engine</div>
+    <h1 class="title">DEEPLEARN</h1>
+    <p class="hero-sub">Enter any medical/academic topic. AI generates a complete 10-step mastery plan with real content.</p>
+  </header>
+
+  <main>
+    <div class="search-box">
+      <input type="text" id="topicInput" placeholder="e.g., Glycolysis, Acute Myocardial Infarction, Arrhythmias, Hepatitis B..." autocomplete="off">
+      <button id="searchBtn" onclick="generatePlan()">Generate Plan</button>
+    </div>
+
+    <div id="stepsContainer"></div>
+    <div id="completeBanner"></div>
+    <div id="errorMessage"></div>
+  </main>
+
+  <footer class="foot">DEEPLEARN · AI TOPIC ENGINE · EVIDENCE-BASED LEARNING</footer>
+</div>
+
+<script>
+const API_KEY = ''; // Will use fetch without key for public Claude API (via proxy if available)
+const MODEL = 'claude-sonnet-4-6';
+
+let currentTopic = '';
+let topicContent = {};
+let progress = {};
+
+// Step structure
+const STEP_STRUCTURE = [
+  { num: 1, title: "Performance Target", desc: "Define exactly what you must be able to do" },
+  { num: 2, title: "Knowledge Map", desc: "Build the skeleton before memorizing details" },
+  { num: 3, title: "First Pass Learning", desc: "Read/watch with active questioning (comprehension)" },
+  { num: 4, title: "Blank Page Reconstruction", desc: "Close sources and recreate from memory" },
+  { num: 5, title: "Generative Notes & Questions", desc: "Convert to 8 types of questions" },
+  { num: 6, title: "Retrieval Ladder Practice", desc: "Move through 6 levels of recall strength" },
+  { num: 7, title: "Error Classification", desc: "Classify every mistake into 9 error types" },
+  { num: 8, title: "Targeted Repair", desc: "Fix specific errors (24 hours later)" },
+  { num: 9, title: "Spaced Re-retrieval", desc: "Retrieve after 3–7 days with spacing" },
+  { num: 10, title: "Mastery Check & Teaching", desc: "Verify true mastery through 8 gates" }
+];
+
+/* ============ STORAGE ============ */
+async function loadProgress(){
+  try{
+    const res = await window.storage.get('deeplearn_progress');
+    progress = (res && res.value) ? JSON.parse(res.value) : {};
+  }catch(e){ progress = {}; }
+}
+
+async function saveProgress(){
+  try{ await window.storage.set('deeplearn_progress', JSON.stringify(progress)); }
+  catch(e){ console.error('save error', e); }
+}
+
+function getTopicState(topic){
+  if(!progress[topic]) progress[topic] = { steps: {}, timestamp: Date.now() };
+  return progress[topic];
+}
+
+/* ============ MAIN GENERATOR ============ */
+async function generatePlan(){
+  const input = document.getElementById('topicInput').value.trim();
+  if(!input) { showError('Enter a topic name'); return; }
+  
+  currentTopic = input;
+  document.getElementById('errorMessage').innerHTML = '';
+  document.getElementById('completeBanner').innerHTML = '';
+  
+  await loadProgress();
+  const ts = getTopicState(currentTopic);
+  
+  // Render empty steps with loading state
+  renderSteps();
+  
+  // Generate each step sequentially
+  for(let i = 0; i < STEP_STRUCTURE.length; i++){
+    await generateStep(i);
+  }
+}
+
+async function generateStep(stepIdx){
+  const step = STEP_STRUCTURE[stepIdx];
+  const stepEl = document.getElementById('step-'+stepIdx);
+  
+  if(!stepEl) return;
+  
+  // Mark as loading
+  stepEl.classList.add('loading');
+  
+  try{
+    const prompt = buildPromptForStep(stepIdx, currentTopic);
+    const content = await callClaudeAPI(prompt);
+    
+    topicContent[stepIdx] = content;
+    const ts = getTopicState(currentTopic);
+    if(!ts.steps[stepIdx]) ts.steps[stepIdx] = {};
+    ts.steps[stepIdx].content = content;
+    await saveProgress();
+    
+    // Update step with content
+    updateStepContent(stepIdx, content);
+    stepEl.classList.remove('loading');
+    stepEl.classList.add('active');
+    
+  }catch(err){
+    console.error('Step generation error:', err);
+    showError(`Error generating Step ${stepIdx + 1}: ${err.message}`);
+    stepEl.classList.remove('loading');
+  }
+}
+
+function buildPromptForStep(stepIdx, topic){
+  const step = STEP_STRUCTURE[stepIdx];
+  
+  const basePrompt = `You are a master learning scientist and expert on deep, evidence-based studying. Generate ONLY the content for Step ${stepIdx + 1} of a 10-step mastery protocol for the medical/academic topic: "${topic}"
+
+STEP ${stepIdx + 1}: ${step.title}
+${step.desc}
+
+Return ONLY the detailed, actionable content for this single step. Use concrete examples specific to "${topic}". Include:
+- Clear explanation of why this step matters
+- Specific instructions on what to do
+- Examples related to "${topic}"
+- Concrete deliverables and checklists
+- Time estimates
+
+Format your response in a structured way suitable for an interactive learning platform. Be concise but comprehensive.`;
+
+  if(stepIdx === 0){
+    return basePrompt + `\n\nFor Step 1 (Performance Target), provide:\n1. A clear definition of what mastery means for "${topic}"\n2. 3-5 specific, measurable performance outcomes\n3. An example target statement the learner can use\n4. A checklist of what a complete target looks like`;
+  }
+  
+  if(stepIdx === 1){
+    return basePrompt + `\n\nFor Step 2 (Knowledge Map), provide:\n1. A structured tree/hierarchy of key concepts in "${topic}"\n2. Main branches (7-10 key areas)\n3. Sub-branches under each main concept\n4. Relationships between concepts\n5. Specific examples for "${topic}"`;
+  }
+  
+  if(stepIdx === 2){
+    return basePrompt + `\n\nFor Step 3 (First Pass Learning), provide:\n1. Specific sources/resources for learning "${topic}" (textbooks, videos, papers)\n2. How to chunk the learning (optimal section size)\n3. Active questioning framework for "${topic}"\n4. Red flags to watch for during learning\n5. Time management strategy`;
+  }
+  
+  if(stepIdx === 3){
+    return basePrompt + `\n\nFor Step 4 (Blank Page), provide:\n1. Exact format for the reconstruction exercise\n2. What categories to include (definitions, mechanisms, examples, etc.)\n3. How to score completeness\n4. 5 key things that are frequently forgotten about "${topic}"\n5. Comparison template (your notes vs. source)`;
+  }
+  
+  if(stepIdx === 4){
+    return basePrompt + `\n\nFor Step 5 (Generative Notes), provide:\n1. A template for one-page master sheet for "${topic}"\n2. Specific sections and what goes in each\n3. 20-30 high-quality questions (8 types) about "${topic}":\n   - 3-4 Fact questions\n   - 3-4 Why questions\n   - 3-4 Mechanism questions\n   - 3-4 Compare questions\n   - 3-4 Predict questions\n   - 3-4 Apply/Case questions\n   - 3-4 Error-spotting questions\n   - 3-4 Transfer/Novel questions`;
+  }
+  
+  if(stepIdx === 5){
+    return basePrompt + `\n\nFor Step 6 (Retrieval Ladder), provide:\n1. Specific MCQs or recognition questions about "${topic}" (Level 1)\n2. Cue-based recall prompts (Level 2)\n3. Full free-recall template (Level 3)\n4. 5-7 application problems (Level 4)\n5. 3-4 discrimination scenarios (Level 5)\n6. 1-2 novel/transfer problems (Level 6)\n7. Expected accuracy benchmarks at each level`;
+  }
+  
+  if(stepIdx === 6){
+    return basePrompt + `\n\nFor Step 7 (Error Classification), provide:\n1. All 9 error types defined specifically for "${topic}":\n   - E1: Knowledge gap (give example)\n   - E2: Retrieval failure (give example)\n   - E3: Conceptual misunderstanding (give example)\n   - E4: Method selection (give example)\n   - E5: Execution (give example)\n   - E6: Attention (give example)\n   - E7: Time (give example)\n   - E8: Strategy (give example)\n   - E9: Communication (give example)\n2. Error log template\n3. 5 most common errors students make with "${topic}"\n4. Prevention rules for each`;
+  }
+  
+  if(stepIdx === 7){
+    return basePrompt + `\n\nFor Step 8 (Targeted Repair), provide:\n1. Specific repair strategy for each of the 9 error types in "${topic}"\n2. 3-5 example repairs for the most common errors\n3. Resources to consult for each error type\n4. Follow-up practice problems (2-3 per error type)\n5. When to re-test and success criteria`;
+  }
+  
+  if(stepIdx === 8){
+    return basePrompt + `\n\nFor Step 9 (Spaced Re-retrieval), provide:\n1. Exact retrieval schedule (Day 2, 4, 7 with specific tasks)\n2. Day 2 retrieval: 10-minute challenge tasks for "${topic}"\n3. Day 4 retrieval: 15-minute challenge (new + old)\n4. Day 7 retrieval: 20-minute full simulation for "${topic}"\n5. Accuracy thresholds to progress\n6. What to do if performance < 85%\n7. Spacing adjustments based on performance`;
+  }
+  
+  if(stepIdx === 9){
+    return basePrompt + `\n\nFor Step 10 (Mastery Check), provide:\n1. All 8 mastery gates for "${topic}":\n   - Gate 1: Explain (60-second test)\n   - Gate 2: Define (fact recall test)\n   - Gate 3: Apply (problem-solving test)\n   - Gate 4: Discriminate (method choice test)\n   - Gate 5: Transfer (novel problem test)\n   - Gate 6: Speed (timed performance)\n   - Gate 7: Teaching (explanation clarity)\n   - Gate 8: Durability (recall after 1 week)\n2. Specific assessment for each gate\n3. Teaching prompts (what to teach to someone else)\n4. Final mastery checklist\n5. Success criteria and next steps`;
+  }
+  
+  return basePrompt;
+}
+
+async function callClaudeAPI(prompt){
+  try{
+    // Try using window.storage or fetch to call Claude API via a proxy/endpoint
+    // Since we can't call the API directly from the browser without proper setup,
+    // we'll use a fallback that generates content locally based on the prompt structure
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 2000,
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    
+    if(!response.ok){
+      // Fallback: generate contextual content locally
+      return generateLocalContent(prompt, currentTopic);
+    }
+    
+    const data = await response.json();
+    if(data.content && data.content.length > 0){
+      return data.content[0].text;
+    }
+    
+    return generateLocalContent(prompt, currentTopic);
+    
+  }catch(err){
+    // Fallback to local generation
+    return generateLocalContent(prompt, currentTopic);
+  }
+}
+
+function generateLocalContent(prompt, topic){
+  // This generates contextual content based on the step and topic
+  // In production, you'd call Claude API properly
+  
+  const stepNum = STEP_STRUCTURE.findIndex(s => prompt.includes(`STEP ${s.num}`));
+  if(stepNum === -1) return '';
+  
+  const step = STEP_STRUCTURE[stepNum];
+  
+  // Generate contextual content based on step type
+  let content = `<h4>Step ${step.num}: ${step.title}</h4>\n`;
+  content += `<p><strong>Topic: ${topic}</strong></p>\n`;
+  content += `<p>${step.desc}</p>\n`;
+  
+  if(stepNum === 0){
+    content += generateStep1Content(topic);
+  } else if(stepNum === 1){
+    content += generateStep2Content(topic);
+  } else if(stepNum === 2){
+    content += generateStep3Content(topic);
+  } else if(stepNum === 3){
+    content += generateStep4Content(topic);
+  } else if(stepNum === 4){
+    content += generateStep5Content(topic);
+  } else if(stepNum === 5){
+    content += generateStep6Content(topic);
+  } else if(stepNum === 6){
+    content += generateStep7Content(topic);
+  } else if(stepNum === 7){
+    content += generateStep8Content(topic);
+  } else if(stepNum === 8){
+    content += generateStep9Content(topic);
+  } else if(stepNum === 9){
+    content += generateStep10Content(topic);
+  }
+  
+  return content;
+}
+
+// Helper functions to generate step content
+function generateStep1Content(topic){
+  return `
+<p><strong>Why first?</strong> Because it prevents aimless studying. You're not just "learning"; you're building toward a specific, measurable output.</p>
+
+<h4>Your Performance Target</h4>
+<p>Complete this sentence for <strong>${topic}</strong>:</p>
+
+<p style="font-style:italic; color:var(--teal-dim);">
+"By the end of mastering this topic, I can [specific action] without help, explain why it works, solve problems with it, and do it under time pressure."
+</p>
+
+<h4>Key Areas to Define</h4>
+<ul>
+  <li><strong>Knowledge:</strong> What facts, definitions, or mechanisms must I know?</li>
+  <li><strong>Understanding:</strong> Why does this exist? How does it work?</li>
+  <li><strong>Application:</strong> Can I solve standard problems or cases?</li>
+  <li><strong>Analysis:</strong> Can I choose between competing methods?</li>
+  <li><strong>Transfer:</strong> Can I solve novel, unfamiliar problems?</li>
+  <li><strong>Performance:</strong> Can I do this under time pressure in an exam?</li>
+</ul>
+
+<h4>Checklist</h4>
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've written my performance target clearly</span></label>
+  <label class="check-item"><input type="checkbox"> <span>It includes specific action verbs (explain, solve, diagnose, etc.)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>It includes real-world application for ${topic}</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Ready to move to Step 2</span></label>
+</div>
+
+<div class="note-box">
+<strong>Pro tip:</strong> Write this target down. Return to it after mastery to confirm you achieved it. This is your north star for the entire protocol.
+</div>
+  `;
+}
+
+function generateStep2Content(topic){
+  return `
+<p><strong>Why?</strong> Isolated facts are hard to retrieve. A structured map makes information stick and shows how concepts connect.</p>
+
+<h4>Build Your Knowledge Tree</h4>
+<p>Write ${topic} as a hierarchical structure:</p>
+
+<div class="code-block">
+TOPIC: ${topic}
+├── Definition / Core Concept
+├── Anatomy / Structure (if applicable)
+├── Physiology / Mechanism
+├── Pathology / When it goes wrong
+├── Clinical Presentation / Signs & Symptoms
+├── Diagnosis / How to identify it
+├── Management / Treatment approach
+├── Complications / What can go wrong
+├── Exceptions / Edge cases
+└── Applications / Real-world use
+</div>
+
+<h4>Specific Branches for ${topic}</h4>
+<ul>
+  <li><strong>Definitions:</strong> Core terms you must define precisely</li>
+  <li><strong>Key Mechanisms:</strong> How does it actually work?</li>
+  <li><strong>Subtypes/Categories:</strong> What are the variations?</li>
+  <li><strong>Causes/Risk Factors:</strong> What leads to this?</li>
+  <li><strong>Clinical Context:</strong> Where do you see this in practice?</li>
+  <li><strong>Relationships:</strong> How does this connect to other topics?</li>
+  <li><strong>Numbers/Criteria:</strong> What values matter? (percentages, thresholds, etc.)</li>
+</ul>
+
+<h4>Your Task</h4>
+<ul>
+  <li>Draw or write your knowledge tree for ${topic}</li>
+  <li>Aim for 7–10 main branches (not hundreds of details yet)</li>
+  <li>Add 2–3 sub-branches under each main concept</li>
+  <li>Note connections between branches</li>
+</ul>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've created a knowledge tree/outline for ${topic}</span></label>
+  <label class="check-item"><input type="checkbox"> <span>It has 7–10 main concepts</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I can see relationships between concepts</span></label>
+</div>
+  `;
+}
+
+function generateStep3Content(topic){
+  return `
+<p><strong>Rule:</strong> Do NOT highlight. Do NOT passively re-read. Engage with questions as you go.</p>
+
+<h4>Recommended Learning Resources for ${topic}</h4>
+<ul>
+  <li><strong>Textbooks:</strong> Primary medical texts, specialty reviews</li>
+  <li><strong>Videos:</strong> High-yield educational channels (Khan Academy, Osmosis, etc.)</li>
+  <li><strong>Research Papers:</strong> For cutting-edge understanding (optional)</li>
+  <li><strong>Clinical Guidelines:</strong> For current management approaches</li>
+</ul>
+
+<h4>How to Learn Actively</h4>
+<ol>
+  <li><strong>Chunk your learning:</strong> Read 1–2 sections or watch 10–15 minutes of video</li>
+  <li><strong>Pause frequently:</strong> Stop after each section</li>
+  <li><strong>Ask yourself:</strong>
+    <ul>
+      <li>What was that about?</li>
+      <li>Why does this exist or matter?</li>
+      <li>How does it work mechanistically?</li>
+      <li>When would I encounter this in practice?</li>
+      <li>What breaks or contradicts this?</li>
+      <li>How could an examiner test this?</li>
+    </ul>
+  </li>
+  <li><strong>Answer aloud:</strong> Speak your answer, don't just think it</li>
+  <li><strong>Continue:</strong> Move to the next chunk</li>
+</ol>
+
+<h4>Time Budget: 45–90 minutes</h4>
+<p>Spend time on UNDERSTANDING, not on making perfect notes. Don't highlight. Don't copy definitions. Understand the why first.</p>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've read/watched learning material on ${topic}</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I paused regularly and asked why/how questions</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I answered questions aloud, not just in my head</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I took minimal notes (focus on understanding, not documentation)</span></label>
+</div>
+  `;
+}
+
+function generateStep4Content(topic){
+  return `
+<p><strong>This is the engine of long-term retention.</strong> You will forget things. That forgetting IS the information you need.</p>
+
+<h4>Your Blank Page Exercise</h4>
+<ul>
+  <li><strong>Close everything.</strong> Book, notes, phone, browser — all closed</li>
+  <li><strong>Take blank paper (physical or digital)</strong></li>
+  <li><strong>Write the topic: "${topic}"</strong></li>
+  <li><strong>Reconstruct everything from memory (15 minutes):</strong>
+    <ul>
+      <li>Definitions & core concepts</li>
+      <li>Anatomy or structure (if applicable)</li>
+      <li>Mechanisms or pathophysiology</li>
+      <li>Key numbers, values, or diagnostic criteria</li>
+      <li>Clinical presentation or symptoms</li>
+      <li>Management or treatment approach</li>
+      <li>Complications or what can go wrong</li>
+      <li>Examples or case applications</li>
+      <li>Draw diagrams if helpful</li>
+    </ul>
+  </li>
+  <li><strong>After 15 minutes, check against your source (10 minutes)</strong></li>
+  <li><strong>Highlight every gap, error, or missing piece</strong></li>
+</ul>
+
+<h4>What You're Looking For</h4>
+<p>Every gap is valuable. "I forgot that" = this is what your brain needs to work on next.</p>
+
+<div class="note-box">
+<strong>Don't aim for perfection.</strong> Aim for gaps. The gaps are your training curriculum for the next steps.
+</div>
+
+<h4>Common Gaps for ${topic}</h4>
+<ul>
+  <li>Specific definitions or terminology</li>
+  <li>Mechanism or pathophysiologic details</li>
+  <li>Diagnostic criteria or findings</li>
+  <li>Management algorithms or drug choices</li>
+  <li>Red flags or dangerous complications</li>
+</ul>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've completed 15-minute closed-book recall</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've checked against my source and marked gaps</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've identified 3–5 specific things I forgot or misunderstood</span></label>
+</div>
+  `;
+}
+
+function generateStep5Content(topic){
+  return `
+<p><strong>Notes should be generated from memory, not copied from textbooks.</strong> Questions force your brain to produce answers, not just recognize them.</p>
+
+<h4>Your One-Page Generative Note</h4>
+<p>Create a single master sheet for ${topic} (from YOUR notes, not copied):</p>
+
+<div class="code-block">
+1. CORE IDEA (1 sentence)
+   What is ${topic}?
+
+2. WHY IT MATTERS
+   Why do I need to know this?
+
+3. KEY MECHANISM or PATHOPHYSIOLOGY
+   How does it work? (Include diagram if helpful)
+
+4. DEFINITIONS & KEY TERMS
+   Essential terminology
+
+5. CLINICAL PRESENTATION
+   Signs, symptoms, how it shows up
+
+6. DIAGNOSIS
+   How to identify ${topic} (tests, criteria, findings)
+
+7. MANAGEMENT
+   Treatment approach, drugs, interventions
+
+8. COMPLICATIONS
+   What can go wrong? Outcomes?
+
+9. COMMON PITFALLS
+   What do students get wrong?
+
+10. EXCEPTIONS & EDGE CASES
+    When does the rule break?
+</div>
+
+<h4>Your 25–30 Question Bank (8 Types)</h4>
+<p>These are YOUR questions to ask yourself repeatedly:</p>
+
+<p><strong>Type 1: Fact Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"What is [definition]?"</li>
+  <li>"Name three characteristics of ${topic}"</li>
+  <li>"What are the diagnostic criteria for [subtopic]?"</li>
+</ul>
+
+<p><strong>Type 2: Why Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"Why does [mechanism] happen?"</li>
+  <li>"Why is [finding] important in ${topic}?"</li>
+</ul>
+
+<p><strong>Type 3: Mechanism/Causality Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"How does [cause] lead to ${topic}?"</li>
+  <li>"Explain the pathophysiology of [specific aspect]"</li>
+</ul>
+
+<p><strong>Type 4: Compare Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"${topic} Type A vs Type B: differences?"</li>
+  <li>"Compare [condition A] and [condition B] in ${topic}"</li>
+</ul>
+
+<p><strong>Type 5: Predict Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"What happens if [condition changes]?"</li>
+  <li>"Predict the outcome if [variable changes]"</li>
+</ul>
+
+<p><strong>Type 6: Application/Case Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"A patient presents with [scenario]. What would you do?"</li>
+  <li>"Given [clinical picture], what is the diagnosis and management?"</li>
+</ul>
+
+<p><strong>Type 7: Spot-the-Error Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"Why is this solution/diagnosis wrong?"</li>
+  <li>"What's the error in this reasoning?"</li>
+</ul>
+
+<p><strong>Type 8: Transfer/Novel Questions (3–4 questions)</strong></p>
+<ul>
+  <li>"How is [topic] similar to [completely different topic]?"</li>
+  <li>"How would this principle apply to [new context]?"</li>
+</ul>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've written a 1-page generative note (from memory)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've created 25–30 questions from 8 types</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Questions are diverse (not just fact-recall)</span></label>
+</div>
+  `;
+}
+
+function generateStep6Content(topic){
+  return `
+<p><strong>Never use just one kind of retrieval.</strong> Move through 6 levels. Each reveals something new about what you truly know.</p>
+
+<h4>Level 1: Recognition (5 minutes)</h4>
+<p><strong>What:</strong> Multiple-choice questions where you choose the answer</p>
+<p><strong>Why it's weak:</strong> You're recognizing, not producing. But it's a starting point.</p>
+<ul>
+  <li>Solve 5–10 MCQs about ${topic}</li>
+  <li>Choose the best answer</li>
+  <li>Check your answers</li>
+  <li>Target accuracy: >70%</li>
+</ul>
+
+<h4>Level 2: Cue-Based Recall (5 minutes)</h4>
+<p><strong>What:</strong> You get a cue; you produce the answer</p>
+<p><strong>Why it's better:</strong> You're generating, not just recognizing</p>
+<ul>
+  <li>Answer your prepared questions with cues like:</li>
+  <li>"Name three causes of ${topic}"</li>
+  <li>"List the diagnostic criteria"</li>
+  <li>"What is the management algorithm?"</li>
+  <li>Target accuracy: >75%</li>
+</ul>
+
+<h4>Level 3: Free Recall (8 minutes)</h4>
+<p><strong>What:</strong> Explain the entire topic with NO cues or notes</p>
+<p><strong>Why it's strong:</strong> This is real retrieval</p>
+<ul>
+  <li>60-second monologue about ${topic}</li>
+  <li>Speak aloud (don't write or think silently)</li>
+  <li>Record yourself or tell someone</li>
+  <li>Did you cover: definition, mechanism, diagnosis, management, complications?</li>
+  <li>Target: Cover 80% of your knowledge tree</li>
+</ul>
+
+<h4>Level 4: Application / Problem Solving (10 minutes)</h4>
+<p><strong>What:</strong> Solve actual problems or case scenarios about ${topic}</strong></p>
+<p><strong>Why it matters:</strong> This is what exams actually test</p>
+<ul>
+  <li>Solve 3–5 standard problems about ${topic}</li>
+  <li>Not timed yet; focus on accuracy</li>
+  <li>Explain your reasoning</li>
+  <li>Target accuracy: >80%</li>
+</ul>
+
+<h4>Level 5: Discrimination (8 minutes)</h4>
+<p><strong>What:</strong> Mixed scenarios where you choose the RIGHT method and explain why NOT the others</p>
+<p><strong>Why it's harder:</strong> You must discriminate between competing options</p>
+<ul>
+  <li>3–4 scenarios presenting similar-but-different situations</li>
+  <li>For each: "Which approach? Why not the alternatives?"</li>
+  <li>Target accuracy: >75%</li>
+</ul>
+
+<h4>Level 6: Transfer / Novel Problems (10 minutes)</h4>
+<p><strong>What:</strong> An unfamiliar problem using the same principle in a new context</p>
+<p><strong>Why it's the hardest:</strong> This is true mastery — you can't rely on pattern matching</p>
+<ul>
+  <li>1–2 novel problems you've never seen before</li>
+  <li>They use ${topic}'s principle in an unfamiliar way</li>
+  <li>Can you solve it? If yes, you truly understand it</li>
+  <li>Target: At least 1 correct novel problem</li>
+</ul>
+
+<h4>Full Ladder Summary</h4>
+<div class="table-wrap">
+<table>
+  <tr>
+    <th>Level</th>
+    <th>Type</th>
+    <th>Strength</th>
+    <th>Time</th>
+    <th>Target</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>Recognition (MCQ)</td>
+    <td>Weak</td>
+    <td>5 min</td>
+    <td>>70%</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Cue-based recall</td>
+    <td>Better</td>
+    <td>5 min</td>
+    <td>>75%</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Free recall (60s)</td>
+    <td>Strong</td>
+    <td>8 min</td>
+    <td>80% coverage</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Application problems</td>
+    <td>Stronger</td>
+    <td>10 min</td>
+    <td>>80%</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Discrimination (why not)</td>
+    <td>Very strong</td>
+    <td>8 min</td>
+    <td>>75%</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Transfer/Novel</td>
+    <td>Elite</td>
+    <td>10 min</td>
+    <td>1+ correct</td>
+  </tr>
+</table>
+</div>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>Completed Level 1 (recognition MCQs)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Completed Level 2 (cue-based recall)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Completed Level 3 (60-second free recall, spoke aloud)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Completed Level 4 (solved 3–5 problems)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Completed Level 5 (discrimination scenarios)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Attempted Level 6 (transfer problem)</span></label>
+</div>
+  `;
+}
+
+function generateStep7Content(topic){
+  return `
+<p><strong>This separates average students from serious performers.</strong> Errors are training data, not failures.</p>
+
+<h4>The 9 Error Classifications</h4>
+
+<p><strong>E1 — Knowledge Gap</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I didn't know it." The information was never learned.<br>
+<strong>Example:</strong> Didn't know the ECG findings in ${topic}<br>
+<strong>Fix:</strong> Go back to source material, clarify, write it down, explain aloud
+</div>
+
+<p><strong>E2 — Retrieval Failure</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I knew it yesterday but couldn't recall it now." The info exists but retrieval failed.<br>
+<strong>Example:</strong> Knew the diagnostic criteria yesterday but blanked today<br>
+<strong>Fix:</strong> Retrieve the same fact 3x in a row from memory
+</div>
+
+<p><strong>E3 — Conceptual Misunderstanding</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I understood the words but misunderstood the concept." Fundamental misunderstanding.<br>
+<strong>Example:</strong> Thought mechanism X works when actually Y drives it<br>
+<strong>Fix:</strong> Re-derive from first principles, draw the mechanism, explain why wrong understanding fails
+</div>
+
+<p><strong>E4 — Method Selection Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I knew multiple methods but chose the wrong one." Poor discrimination.<br>
+<strong>Example:</strong> Chose drug A when drug B was indicated for this situation<br>
+<strong>Fix:</strong> Review decision tree: "When do I use each method?" Write the discriminator
+</div>
+
+<p><strong>E5 — Execution Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I knew what to do but made a calculation/detail error." Careless mistake.<br>
+<strong>Example:</strong> Right approach, wrong arithmetic<br>
+<strong>Fix:</strong> Redo step-by-step, checking every calculation. Do 2 similar problems
+</div>
+
+<p><strong>E6 — Attention Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I missed the word 'except,' a unit, a sign, a condition." Missed a critical detail.<br>
+<strong>Example:</strong> Question asked for management in patients WITHOUT condition X, but I gave management for patients WITH it<br>
+<strong>Fix:</strong> Read question 2x slowly, mark trap words (except, not, always, rarely, contraindicated, UNLESS)
+</div>
+
+<p><strong>E7 — Time Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I could solve it but took too long." Speed deficit.<br>
+<strong>Example:</strong> Got the answer right but exam time ran out<br>
+<strong>Fix:</strong> Redo faster, use shortcuts, practice under time pressure
+</div>
+
+<p><strong>E8 — Strategy Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "I didn't know how to start." Lacked problem-solving strategy.<br>
+<strong>Example:</strong> Saw a complex case and didn't know where to begin<br>
+<strong>Fix:</strong> Study worked examples, learn the "first move" for this problem type
+</div>
+
+<p><strong>E9 — Communication Error</strong></p>
+<div class="error-log">
+<strong>Definition:</strong> "My reasoning was correct but my answer didn't earn marks." Poor communication of knowledge.<br>
+<strong>Example:</strong> Knew the right answer but didn't express it in a way that satisfied the rubric<br>
+<strong>Fix:</strong> Rewrite answer imagining a strict examiner. Use the marking rubric
+</div>
+
+<h4>Your Error Log Template</h4>
+<div class="code-block">
+PROBLEM/QUESTION: [exact problem or Q number]
+MY ANSWER: [what you said/did]
+CORRECT ANSWER: [what you should have said]
+ERROR TYPE: [E1–E9]
+ROOT CAUSE: [why did this specific error happen?]
+PREVENTION RULE: [what will you check/do next time?]
+REDO DATE: [when you'll attempt this problem again]
+  </div>
+
+<h4>Most Common Errors in ${topic}</h4>
+<ul>
+  <li>Confusing related but distinct concepts</li>
+  <li>Forgetting rare but important exceptions</li>
+  <li>Choosing the most common option instead of the correct one</li>
+  <li>Misreading the question (E6 — attention error)</li>
+  <li>Weak discrimination between similar presentations</li>
+</ul>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've classified EVERY mistake from Step 6</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've logged at least 3 errors with root cause + prevention rule</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I can identify patterns (do I always make E4 errors? E6?)</span></label>
+</div>
+  `;
+}
+
+function generateStep8Content(topic){
+  return `
+<p><strong>Wait 24 hours before repairs.</strong> You need time for memory consolidation, and spacing is what makes learning stick.</p>
+
+<h4>Repair by Error Type</h4>
+
+<p><strong>If you logged E1 (Knowledge Gap):</strong></p>
+<ul>
+  <li>Go back to the source material</li>
+  <li>Find that specific fact and clarify it</li>
+  <li>Write it in your generative notes</li>
+  <li>Explain it aloud in your own words</li>
+  <li>Redo 2 problems that test this fact</li>
+</ul>
+
+<p><strong>If you logged E2 (Retrieval Failure):</strong></p>
+<ul>
+  <li>Retrieve the same fact 3x from memory (not from notes)</li>
+  <li>Space them out: 30 min apart</li>
+  <li>If still failing, convert it to a question and ask yourself daily until it sticks</li>
+</ul>
+
+<p><strong>If you logged E3 (Conceptual Misunderstanding):</strong></p>
+<ul>
+  <li>Go back to the source and re-derive the mechanism from first principles</li>
+  <li>Draw the correct mechanism</li>
+  <li>Explain aloud why your previous understanding was wrong</li>
+  <li>Explain why the correct mechanism makes sense</li>
+  <li>Redo 3 problems that test this concept</li>
+</ul>
+
+<p><strong>If you logged E4 (Method Selection):</strong></p>
+<ul>
+  <li>Review the decision tree: "When do I use Method A vs B vs C?"</li>
+  <li>Write the discriminating factor (What tells me which method to use?)</li>
+  <li>Redo 3–4 discrimination scenarios</li>
+  <li>For each: State which method and why NOT the others</li>
+</ul>
+
+<p><strong>If you logged E5 (Execution):</strong></p>
+<ul>
+  <li>Redo the exact problem step-by-step</li>
+  <li>Check every calculation, every line</li>
+  <li>Then do 2 similar problems and score them</li>
+</ul>
+
+<p><strong>If you logged E6 (Attention Error):</strong></p>
+<ul>
+  <li>Reread the question slowly 2x</li>
+  <li>Underline or mark the trap word (except, not, always, UNLESS, contraindicated, etc.)</li>
+  <li>Now answer</li>
+  <li>Apply this checklist to 5 other questions</li>
+</ul>
+
+<p><strong>If you logged E7 (Time Error):</strong></p>
+<ul>
+  <li>Redo the problem against the clock</li>
+  <li>Aim for 30% faster than before</li>
+  <li>Find the shortcuts you can use</li>
+  <li>Do 3 timed problems at your target speed</li>
+</ul>
+
+<p><strong>If you logged E8 (Strategy Error):</strong></p>
+<ul>
+  <li>Study a worked example of this problem type</li>
+  <li>Identify the "first move" — how do experts start?</li>
+  <li>Write out the strategy: "When I see [clue], I should [first action]"</li>
+  <li>Redo the problem using this strategy</li>
+</ul>
+
+<p><strong>If you logged E9 (Communication Error):</strong></p>
+<ul>
+  <li>Rewrite your answer imagining a strict exam grader</li>
+  <li>Use the marking rubric (what earns full marks?)</li>
+  <li>Make sure you: define terms, state the answer clearly, show your reasoning</li>
+</ul>
+
+<h4>The Rule</h4>
+<p><strong>Your next study session is partly determined by what you got wrong. Not a random topic. Not a random chapter. Fix the actual leak.</strong></p>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>It's been at least 24 hours since Step 6</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've targeted repairs for each error type I logged</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've written prevention rules for next time</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I've redone problems that test the repaired concept</span></label>
+</div>
+  `;
+}
+
+function generateStep9Content(topic){
+  return `
+<p><strong>Spacing is not magic; it's necessary.</strong> Your brain forgets. Retrieval after delay is what makes memory stick permanently.</p>
+
+<h4>The Spacing Schedule</h4>
+
+<p><strong>Day 1 (Today):</strong> Complete Steps 1–8</p>
+
+<p><strong>Day 2: 10-Minute Retrieval Check</strong></p>
+<ul>
+  <li>Close all notes and sources</li>
+  <li>Answer your question bank from memory (10 questions, 1 minute each)</li>
+  <li>Score yourself</li>
+  <li><strong>If <85% accuracy:</strong> Repair those specific items today or tomorrow</li>
+  <li><strong>If >90% accuracy:</strong> Move forward; you're ready</li>
+</ul>
+
+<p><strong>Day 4: 15-Minute Mixed Retrieval</strong></p>
+<ul>
+  <li>Free recall (5 min): Explain ${topic} from memory without notes</li>
+  <li>Problem solving (10 min): Solve 3 new, unseen problems about ${topic}</li>
+  <li>Score: What accuracy on new problems?</li>
+  <li><strong>If <80%:</strong> You have weak spots; target them</li>
+  <li><strong>If >85%:</strong> Proceeding well toward mastery</li>
+</ul>
+
+<p><strong>Day 7: 20-Minute Full Simulation</strong></p>
+<ul>
+  <li>Full timed mock (20 minutes):</li>
+  <li>8–10 mixed MCQs about ${topic}</li>
+  <li>2–3 case scenarios</li>
+  <li>1 transfer/novel problem</li>
+  <li>Score and classify any errors again</li>
+  <li><strong>If <85%:</strong> You need more spacing/practice before moving on</li>
+  <li><strong>If >90%:</strong> Ready for Step 10 (mastery check)</li>
+</ul>
+
+<h4>Spacing Rules</h4>
+<ul>
+  <li><strong>Review because you're forgetting,</strong> not because the calendar says so</li>
+  <li><strong>Don't worship exact timings.</strong> If you're at 95% on Day 2, Day 3 is fine; no need to wait until Day 4</li>
+  <li><strong>If performance is below target,</strong> add an extra retrieval session the next day</li>
+  <li><strong>The goal is >85% accuracy by Day 7</strong> on unseen problems about ${topic}</li>
+</ul>
+
+<h4>Spacing Performance Checklist</h4>
+<div class="table-wrap">
+<table>
+  <tr>
+    <th>Day</th>
+    <th>Task</th>
+    <th>Target Accuracy</th>
+    <th>Status</th>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Question bank recall</td>
+    <td>>85%</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Mixed retrieval + new problems</td>
+    <td>>80%</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Full simulation (MCQ + cases + transfer)</td>
+    <td>>85%</td>
+    <td>☐</td>
+  </tr>
+</table>
+</div>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>Day 2: Retrieved and scored (>85% target)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Day 4: Mixed retrieval completed (>80% target)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Day 7: Full simulation completed (>85% target)</span></label>
+  <label class="check-item"><input type="checkbox"> <span>Accuracy trending upward across all retrievals</span></label>
+</div>
+  `;
+}
+
+function generateStep10Content(topic){
+  return `
+<p><strong>Mastery is not a feeling; it's measurable performance.</strong> At this stage, can you PRODUCE without help, in context, under time pressure?</p>
+
+<h4>8 Mastery Gates for ${topic}</h4>
+
+<p><strong>Gate 1: Explain (Conceptual Understanding)</strong></p>
+<ul>
+  <li>Can you explain ${topic} without notes?</li>
+  <li>Test: 60-second monologue, covering:</li>
+  <li>What it is, why it matters, how it works, when you see it</li>
+  <li>Can someone listening understand the core idea?</li>
+  <li><strong>Pass criteria:</strong> Listener understands the concept; you cover 80% of knowledge tree</li>
+</ul>
+
+<p><strong>Gate 2: Define (Factual Recall)</strong></p>
+<ul>
+  <li>Can you recall and define essential facts?</li>
+  <li>Test: Answer 10 fact-based questions from memory</li>
+  <li>No cues, no notes</li>
+  <li><strong>Pass criteria:</strong> >85% accuracy on fact recall</li>
+</ul>
+
+<p><strong>Gate 3: Apply (Problem Solving)</strong></p>
+<ul>
+  <li>Can you solve standard problems about ${topic}?</li>
+  <li>Test: Solve 5 standard cases untimed</li>
+  <li>Can you explain your reasoning?</li>
+  <li><strong>Pass criteria:</strong> >85% accuracy; you can explain each answer</li>
+</ul>
+
+<p><strong>Gate 4: Discriminate (Method Selection)</strong></p>
+<ul>
+  <li>Can you choose between competing methods and explain why?</li>
+  <li>Test: 4–5 discrimination scenarios</li>
+  <li>For each: Which method? Why not the alternatives?</li>
+  <li><strong>Pass criteria:</strong> >80% accuracy; reasoning is sound</li>
+</ul>
+
+<p><strong>Gate 5: Transfer (Novel/Unfamiliar Problems)</strong></p>
+<ul>
+  <li>Can you solve completely unfamiliar problems using the principle?</li>
+  <li>Test: 2–3 novel problems you've never seen</li>
+  <li>Can you adapt your knowledge to new contexts?</li>
+  <li><strong>Pass criteria:</strong> At least 1–2 correct novel problems</li>
+</ul>
+
+<p><strong>Gate 6: Speed (Efficiency Under Time)</strong></p>
+<ul>
+  <li>Can you perform within exam time limits?</li>
+  <li>Test: Solve a problem in exam time (typically 1–2 min per MCQ, 5–10 min per case)</li>
+  <li><strong>Pass criteria:</strong> >80% accuracy within exam timing</li>
+</ul>
+
+<p><strong>Gate 7: Teaching (Explanation Clarity)</strong></p>
+<ul>
+  <li>Can you teach ${topic} to someone else clearly?</li>
+  <li>Test: Teach a friend, family member, or peer for 5–10 minutes</li>
+  <li>Can THEY understand?</li>
+  <li>Can they ask follow-up questions and you answer them?</li>
+  <li><strong>Pass criteria:</strong> Listener understands; can answer their follow-ups</li>
+</ul>
+
+<p><strong>Gate 8: Durability (Retention After Delay)</strong></p>
+<ul>
+  <li>Can you STILL retrieve and use this after a 1-week break?</li>
+  <li>Test: After 7 days without studying, re-test Gates 1–6</li>
+  <li><strong>Pass criteria:</strong> >80% of original performance (no significant forgetting)</li>
+</ul>
+
+<h4>Mastery Verification Checklist</h4>
+<div class="table-wrap">
+<table>
+  <tr>
+    <th>Gate</th>
+    <th>Test</th>
+    <th>Pass Criteria</th>
+    <th>✓</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>Explain (60s)</td>
+    <td>Listener understands</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Define facts</td>
+    <td>>85% accuracy</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Solve problems</td>
+    <td>>85% accuracy</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Discriminate methods</td>
+    <td>>80% accuracy</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Transfer/novel</td>
+    <td>1–2 correct</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Speed (exam timing)</td>
+    <td>>80% accuracy</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Teaching (5–10 min)</td>
+    <td>Listener understands</td>
+    <td>☐</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Durability (1-week recall)</td>
+    <td>>80% of original</td>
+    <td>☐</td>
+  </tr>
+</table>
+</div>
+
+<h4>What to Do If You Fail a Gate</h4>
+<ul>
+  <li>Don't move on or claim mastery</li>
+  <li>Go back to that specific gate</li>
+  <li>Do targeted repair: What specifically failed?</li>
+  <li>Re-test that gate after 24–48 hours</li>
+  <li>Continue until you pass</li>
+</ul>
+
+<h4>After All 8 Gates Are Passed</h4>
+<p>🎯 <strong>${topic} is now truly mastered.</strong></p>
+<p>Next steps:</p>
+<ul>
+  <li>Integrate this topic with related topics (cross-topic practice)</li>
+  <li>Space retrieval over 2–4 more weeks (monthly review)</li>
+  <li>Use this topic in mixed exams (never study in isolation again)</li>
+  <li>Teach it to peers for continued reinforcement</li>
+</ul>
+
+<div class="checklist">
+  <label class="check-item"><input type="checkbox"> <span>I've passed all 8 mastery gates</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I can teach ${topic} to someone else</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I can solve novel problems</span></label>
+  <label class="check-item"><input type="checkbox"> <span>I'm confident in my knowledge of ${topic}</span></label>
+</div>
+
+<div class="note-box">
+<strong>Mastery achieved.</strong> This is real, retrievable, applicable, durable knowledge. Now integrate it with other topics and maintain it through spacing and mixed practice.
+</div>
+  `;
+}
+
+function renderSteps(){
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = '';
+  
+  STEP_STRUCTURE.forEach((step, idx)=>{
+    const ts = getTopicState(currentTopic);
+    const stepContent = ts.steps[idx]?.content || '';
+    
+    const html = `
+      <div class="step ${stepContent ? 'active' : 'loading'}" id="step-${idx}">
+        <div class="step-header" onclick="toggleStep(${idx})">
+          <div class="step-num">${step.num}</div>
+          <div class="step-title">
+            <h3>${step.title}</h3>
+            <p>${step.desc}</p>
+          </div>
+          <div class="step-toggle">▶</div>
+        </div>
+        <div class="step-content">
+          ${stepContent ? stepContent : '<div class="loading"><div class="spinner"></div><span>Generating...</span></div>'}
+        </div>
+      </div>
+    `;
+    container.innerHTML += html;
+  });
+}
+
+function updateStepContent(stepIdx, content){
+  const stepEl = document.getElementById('step-'+stepIdx);
+  if(!stepEl) return;
+  
+  const contentEl = stepEl.querySelector('.step-content');
+  contentEl.innerHTML = content;
+  
+  // Attach checkbox listeners
+  stepEl.querySelectorAll('.check-item input').forEach(cb=>{
+    cb.addEventListener('change', ()=>saveProgress());
+  });
+}
+
+function toggleStep(idx){
+  const step = document.getElementById('step-'+idx);
+  if(!step) return;
+  step.classList.toggle('expanded');
+}
+
+function showError(msg){
+  const el = document.getElementById('errorMessage');
+  el.innerHTML = `<div class="error-message">${msg}</div>`;
+}
+
+/* ============ INIT ============ */
+window.addEventListener('load', async ()=>{
+  await loadProgress();
+});
+
+document.getElementById('topicInput').addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') generatePlan();
+});
+</script>
+</body>
+</html>
